@@ -5,4 +5,97 @@ format: html
 editor: visual
 ---
 
-# 
+# 1. About the Document
+
+------------------------------------------------------------------------
+
+# 2. Libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(skimr)
+library(janitor)
+```
+
+------------------------------------------------------------------------
+
+# 3. Load and Audit the Dataset
+
+------------------------------------------------------------------------
+
+## 3.1 Load Data
+
+Load Data in R and clean names for easy data handling.
+
+```{r}
+churn_data <- read_csv('data/WA_Fn-UseC_-Telco-Customer-Churn.csv') %>% 
+  clean_names()
+```
+
+------------------------------------------------------------------------
+
+## 3.2 Structure Preview
+
+```{r}
+glimpse(churn_data)
+```
+
+```{r}
+skim(churn_data)
+```
+
+## 3.3 
+
+------------------------------------------------------------------------
+
+Make sure `churn` variable is a factor.
+
+```{r}
+churn_data <- churn_data %>% 
+  mutate(churn = as.factor(churn))
+```
+
+------------------------------------------------------------------------
+
+Class balance for churn variable.
+
+```{r}
+churn_data %>% 
+  count(churn) %>% 
+  mutate(prop = round(n / sum(n), 2))
+```
+
+Data shows that 27% of customers churn and 73% stay.
+
+------------------------------------------------------------------------
+
+Missing values scan.
+
+```{r}
+missing_by_col <- churn_data %>% 
+  summarise(across(everything(), ~sum(is.na(.)))) %>% 
+  pivot_longer(everything(), names_to = 'column', values_to = 'na_count') %>% 
+  arrange(desc(na_count))
+
+missing_by_col %>% 
+  print(n = 20)
+
+```
+
+The only column with missing values is `total_charges`.
+
+------------------------------------------------------------------------
+
+Check for duplicates in the data.
+
+```{r}
+nrow(churn_data)
+```
+
+```{r}
+n_distinct(churn_data$customer_id)
+```
+
+Both show an equal number, meaning the data does not consist of duplicates.
+
+------------------------------------------------------------------------
