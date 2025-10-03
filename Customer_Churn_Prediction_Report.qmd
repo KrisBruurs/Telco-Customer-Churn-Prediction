@@ -1,0 +1,8 @@
+---
+title: "Telco Customer Churn Prediction"
+author: "Kris Bruurs"
+format: html
+editor: visual
+---
+
+# 
