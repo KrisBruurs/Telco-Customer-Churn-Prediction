@@ -15,6 +15,7 @@ editor: visual
 library(tidyverse)
 library(skimr)
 library(janitor)
+library(tidymodels)
 ```
 
 ------------------------------------------------------------------------
@@ -44,7 +45,7 @@ glimpse(churn_data)
 skim(churn_data)
 ```
 
-## 3.3 
+## 3.3 Explore Data
 
 ------------------------------------------------------------------------
 
@@ -53,6 +54,9 @@ Make sure `churn` variable is a factor.
 ```{r}
 churn_data <- churn_data %>% 
   mutate(churn = as.factor(churn))
+
+churn_data <- churn_data %>%
+  mutate(churn = fct_relevel(churn, "Yes"))
 ```
 
 ------------------------------------------------------------------------
@@ -99,3 +103,108 @@ n_distinct(churn_data$customer_id)
 Both show an equal number, meaning the data does not consist of duplicates.
 
 ------------------------------------------------------------------------
+
+# 4. Split and Prepare Data
+
+------------------------------------------------------------------------
+
+## 4.1 Split Data
+
+------------------------------------------------------------------------
+
+```{r}
+set.seed(123) # Ensure reproducibility
+
+churn_split <- initial_split(churn_data, prop = 0.8, strata = churn)
+churn_train <- training(churn_split)
+churn_test <- testing(churn_split)
+```
+
+------------------------------------------------------------------------
+
+Check if proportions in training and testing data are similar to complete dataset
+
+```{r}
+count(churn_train, churn) %>% 
+  mutate(prop = round(n/sum(n),2))
+```
+
+```{r}
+count(churn_test, churn) %>% 
+  mutate(prop = round(n/sum(n),2))
+```
+
+Both of the above tables shows that the proportions in the training and testing data are equal to the full data.
+
+------------------------------------------------------------------------
+
+## 4.2 Preprocess
+
+------------------------------------------------------------------------
+
+Create a churn recipe where:
+
+-   All missing values in `total_charges` are changed to the median
+
+-   All nominal variables become dummy variables
+
+-   All variables with zero variance are removed
+
+```{r}
+churn_recipe <- recipe(churn ~ ., data = churn_train) %>% 
+  update_role(customer_id, new_role = 'ID') %>% 
+  step_impute_median(total_charges) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_zv(all_predictors())
+```
+
+# 5. Baseline Logistic Regression
+
+------------------------------------------------------------------------
+
+## 5.1 Define Model
+
+------------------------------------------------------------------------
+
+```{r}
+model1 <- logistic_reg(mode = 'classification') %>% 
+  set_engine('glm')
+```
+
+------------------------------------------------------------------------
+
+## 5.2 Combine Model with Recipe into Workflow
+
+------------------------------------------------------------------------
+
+```{r}
+reg_wf <- workflow() %>% 
+  add_recipe(churn_recipe) %>% 
+  add_model(model1)
+```
+
+## 5.3 Fit the Model
+
+```{r}
+reg_fit <- fit(reg_wf, data = churn_data)
+```
+
+## 5.4 Evaluate on Test Set
+
+```{r}
+reg_preds <- predict(reg_fit, churn_test, type = "prob") %>%
+  bind_cols(predict(reg_fit, churn_test)) %>%
+  bind_cols(churn_test %>% select(churn))
+```
+
+Confusion matrix:
+
+```{r}
+reg_preds %>%
+  conf_mat(truth = churn, estimate = .pred_class)
+```
+
+```{r}
+reg_preds %>%
+  roc_auc(truth = churn, .pred_Yes)
+```
