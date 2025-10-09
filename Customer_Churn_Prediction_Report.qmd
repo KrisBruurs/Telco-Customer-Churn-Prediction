@@ -82,7 +82,7 @@ missing_by_col <- churn_data %>%
   arrange(desc(na_count))
 
 missing_by_col %>% 
-  print(n = 20)
+  head(10)
 
 ```
 
@@ -208,3 +208,60 @@ reg_preds %>%
 reg_preds %>%
   roc_auc(truth = churn, .pred_Yes)
 ```
+
+# 6. Evaluate Model Performance
+
+```{r}
+tp = 220
+tn = 935
+fp = 100
+fn = 154
+```
+
+## 6.1 Accuracy
+
+$$
+(TP + TN) / (TP+FP+FN+TN)
+$$
+
+```{r}
+accuracy <- round((tp+tn)/(tp+fp+fn+tn) * 100, 2)
+
+print(paste('Accuracy:', accuracy))
+```
+
+The overall model predicts about 82% of cases correctly.
+
+## 6.2 Precision
+
+$$
+TP/(TP+FP)
+$$
+
+```{r}
+precision <- round(tp/(tp+fp)*100, 2)
+
+print(paste('Precision:', precision))
+```
+
+When the model predicts if a customer will churn, its right in about 69% of cases.
+
+## 6.3 Sensitivity
+
+$$
+TP/(TP+FN)
+$$
+
+```{r}
+sensitivity <- round(tp/(tp+fn) * 100, 2)
+
+print(paste('Sensitivity:', sensitivity))
+```
+
+The model catches about 59% of actual churners.
+
+## 6.4 F1 Score
+
+$$
+2* {\\frac{Precision*Sensitivity}{Precision+Sensitivity}}
+$$
